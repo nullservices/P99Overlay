@@ -38,7 +38,7 @@ Perfect for Twitch streamers or personal stats tracking.
    ```
 
 2. **Install dependencies**
-   No additional packages are required (uses built-in Python libraries).
+   pip install websockets
 
 3. **Configure your `config.json`**
    Create a file named `config.json` in the root folder:
