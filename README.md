@@ -38,9 +38,11 @@ Perfect for Twitch streamers or personal stats tracking.
    ```
 
 2. **Install dependencies**
+   ```python
    pip install websockets
+   ```
 
-3. **Configure your `config.json`**
+4. **Configure your `config.json`**
    Create a file named `config.json` in the root folder:
 
    ```json
@@ -53,7 +55,7 @@ Perfect for Twitch streamers or personal stats tracking.
 
    Update `log_dir` to your EverQuest log file directory.
 
-4. **Run the overlay**
+5. **Run the overlay**
    ```bash
    python overlay.py
    ```
@@ -64,7 +66,7 @@ Perfect for Twitch streamers or personal stats tracking.
    [WS] WebSocket server running on ws://localhost:6789
    ```
 
-5. **Add it to OBS**
+6. **Add it to OBS**
 
    - Add a new **Browser Source**
    - Set the URL to: `http://localhost:8000`
