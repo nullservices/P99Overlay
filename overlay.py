@@ -140,6 +140,7 @@ def monitor_log_file(filepath):
         new_lines = []
         last_zone = None
         pending_death = False
+        last_monster_slayed = None
 
         while True:
             line = f.readline()
@@ -204,6 +205,19 @@ def monitor_log_file(filepath):
                 send_stats_update()
                 continue
 
+            if "has been slain by" in line:
+                last_monster_slayed = time.time()
+                continue
+
+            if "You gain party experience" in line and last_monster_slayed:
+                if time.time() - last_monster_slayed <= 2:
+                    total_kills += 1
+                    session_kills += 1
+                    print(f"[KILL] Group kill credited to player")
+                    send_stats_update()
+                last_monster_slayed = None
+                continue
+
             item_match = re.search(r"You have looted (?:a[n]?\s)?(.+?)\.", line)
             if item_match:
                 item_name = item_match.group(1).strip("- ").strip()
@@ -221,7 +235,6 @@ def monitor_log_file(filepath):
 
             if loot_event:
                 send_to_clients({"type": "bag_open"})
-
 
 # === WEBSOCKET ===
 async def ws_handler(websocket):
