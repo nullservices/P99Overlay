@@ -337,17 +337,21 @@ def start_http_server():
 
 # === MAIN ===
 if __name__ == "__main__":
-    load_item_icons()
-    load_spells()
-    log_file = find_latest_log_file()
-    if not log_file:
-        print("[ERROR] No log file found.")
-        exit(1)
+    try:
+        load_item_icons()
+        load_spells()
+        log_file = find_latest_log_file()
+        if not log_file:
+            print("[ERROR] No log file found.")
+            exit(1)
 
-    initialize_stats_from_log(log_file)
-    threading.Thread(target=monitor_log_file, args=(log_file,), daemon=True).start()
-    threading.Thread(target=start_http_server, daemon=True).start()
-    threading.Thread(target=lambda: main_loop.run_until_complete(start_websocket_server()), daemon=True).start()
+        initialize_stats_from_log(log_file)
+        threading.Thread(target=monitor_log_file, args=(log_file,), daemon=True).start()
+        threading.Thread(target=start_http_server, daemon=True).start()
+        threading.Thread(target=lambda: main_loop.run_until_complete(start_websocket_server()), daemon=True).start()
 
-    while True:
-        time.sleep(1)
+        while True:
+            time.sleep(1)
+    
+    except KeyboardInterrupt:
+        print("Shutting down.")
