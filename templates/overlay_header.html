@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Overlay Header</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+    #topBar {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%) scale(1.4);
+      z-index: 10;
+      color: #FFFFCC;
+      font-family: "Georgia", serif;
+      font-size: 16px;
+      font-weight: normal;
+      padding: 8px 14px;
+      background: rgba(0, 0, 0, 0.65);
+      border: 1px solid #888866;
+      border-radius: 6px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.6);
+      text-shadow: 1px 1px 2px #000000;
+      white-space: nowrap;
+      max-width: 90%;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="topBar">
+    <span id="charName">Character: ???</span> |
+    <span id="zoneName">Zone: ???</span> |
+    <span id="highlightText">Total Kills: 0 / Deaths: 0</span> |
+    <span id="sessionStats">Session: Kills: 0 / Deaths: 0</span>
+  </div>
+
+  <script>
+    const charNameDisplay = document.getElementById("charName");
+    const zoneNameDisplay = document.getElementById("zoneName");
+    const highlightText = document.getElementById("highlightText");
+    const sessionStats = document.getElementById("sessionStats");
+
+    function setupWebSocket() {
+      const socket = new WebSocket("ws://localhost:6789");
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "status") {
+          if (data.char_name) charNameDisplay.textContent = `Character: ${data.char_name}`;
+          if (data.current_zone) zoneNameDisplay.textContent = `Zone: ${data.current_zone}`;
+        }
+
+        if (data.type === "stats") {
+          highlightText.textContent = `Total Kills: ${data.total_kills} / Deaths: ${data.total_deaths}`;
+          sessionStats.textContent = `Session: Kills: ${data.session_kills} / Deaths: ${data.session_deaths}`;
+        }
+      };
+
+      socket.onclose = () => {
+        console.warn("[❌] Header WebSocket closed. Reconnecting...");
+        setTimeout(setupWebSocket, 3000);
+      };
+    }
+
+    setupWebSocket();
+  </script>
+</body>
+</html>
