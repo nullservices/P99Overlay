@@ -76,10 +76,15 @@ Perfect for Twitch streamers or personal stats tracking.
 
    - Add a new **Browser Source**
    - Set the URL to the available below
+     
         ▶ Loot     → http://localhost:8000/overlay_loot.html
+     
         ▶ Spells   → http://localhost:8000/overlay_spells.html
+     
         ▶ Buffs    → http://localhost:8000/overlay_buffs.html
+     
         ▶ Header   → http://localhost:8000/overlay_header.html
+     
    - Set the dimensions to match your stream (e.g., 1920x1080)
 
 ---
