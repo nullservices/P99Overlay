@@ -5,6 +5,7 @@
 - Zone name
 - Total/session kills & deaths
 - Looted coins and items with classic EverQuest-style animations
+- Buff Monitor and Spell Animations
 
 Perfect for Twitch streamers or personal stats tracking.
 
@@ -57,19 +58,34 @@ Perfect for Twitch streamers or personal stats tracking.
 
 5. **Run the overlay**
    ```bash
-   python overlay.py
+   python src/overlay.py
    ```
 
    You should see logs like:
    ```
-   [HTTP] Serving overlay at http://localhost:8000
+   [MONITOR] Watching H:/P99/Logs\eqlog_PlayerName_P1999Green.txt
+   [HTTP] Serving overlays at http://localhost:8000
+   Available overlays:
+     ▶ Loot     → http://localhost:8000/overlay_loot.html
+     ▶ Spells   → http://localhost:8000/overlay_spells.html
+     ▶ Buffs    → http://localhost:8000/overlay_buffs.html
+     ▶ Header   → http://localhost:8000/overlay_header.html
    [WS] WebSocket server running on ws://localhost:6789
    ```
 
 6. **Add it to OBS**
 
    - Add a new **Browser Source**
-   - Set the URL to: `http://localhost:8000`
+   - Set the URL to the available below
+     
+        ▶ Loot     → http://localhost:8000/overlay_loot.html
+     
+        ▶ Spells   → http://localhost:8000/overlay_spells.html
+     
+        ▶ Buffs    → http://localhost:8000/overlay_buffs.html
+     
+        ▶ Header   → http://localhost:8000/overlay_header.html
+     
    - Set the dimensions to match your stream (e.g., 1920x1080)
 
 ---

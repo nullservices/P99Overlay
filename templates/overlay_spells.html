@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spell Overlay</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    #spellMessages {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .spellMessage {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.85);
+      color: #ccc;
+      font-family: "Georgia", serif;
+      font-size: 18px;
+      padding: 8px 14px;
+      margin-top: 6px;
+      border-radius: 6px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.5);
+      text-shadow: 1px 1px 2px black;
+      overflow: hidden;
+      width: fit-content;
+    }
+
+    .spellMessageIcon {
+      width: 40px;
+      height: 40px;
+      margin-right: 10px;
+      background-repeat: no-repeat;
+      image-rendering: pixelated;
+      background-size: auto;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+
+    .castBar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 0;
+      background: linear-gradient(to right, rgba(136, 136, 255, 0.25), rgba(136, 136, 255, 0.6));
+      transform: scaleX(0);
+      transform-origin: left;
+      animation: castProgressAnim linear forwards, castPulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes castProgressAnim {
+      0% { transform: scaleX(0); }
+      100% { transform: scaleX(1); }
+    }
+
+    @keyframes castPulse {
+      0%, 100% { box-shadow: 0 0 6px #88f4; }
+      50% { box-shadow: 0 0 14px #bbf7; }
+    }
+
+    .interruptedText {
+      color: red;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .fizzleContainer {
+      display: flex;
+      gap: 6px;
+    }
+
+    .fizzleHalf {
+      opacity: 1;
+    }
+
+    .fizzleLeft {
+      animation: fizzleFallLeft 1.4s ease-out forwards;
+    }
+
+    .fizzleRight {
+      animation: fizzleFallRight 1.4s ease-out forwards;
+    }
+
+    @keyframes fizzleFallLeft {
+      0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+      100% { transform: translate(-80px, 60px) rotate(-20deg); opacity: 0; }
+    }
+
+    @keyframes fizzleFallRight {
+      0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+      100% { transform: translate(80px, 60px) rotate(20deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="spellMessages"></div>
+
+  <script>
+    const spellMessages = document.getElementById("spellMessages");
+    let currentCast = null;
+
+    function getIconSpriteData(iconId) {
+      const sheet = Math.floor(iconId / 36) + 1;
+      const index = iconId % 36;
+      const row = Math.floor(index / 6);
+      const col = index % 6;
+      return {
+        sheet: `/static/spells/spells${sheet.toString().padStart(2, '0')}.png`,
+        x: col * 40,
+        y: row * 40
+      };
+    }
+
+    function clearCastMessage() {
+      if (currentCast) {
+        currentCast.remove();
+        currentCast = null;
+      }
+    }
+
+    function showSpellMessage(name, iconId, durationMs = 4000) {
+      clearCastMessage();
+      console.log("[🧙] Show casting:", name);
+
+      const { sheet, x, y } = getIconSpriteData(iconId);
+      const msg = document.createElement("div");
+      msg.className = "spellMessage";
+
+      const icon = document.createElement("div");
+      icon.className = "spellMessageIcon";
+      icon.style.backgroundImage = `url('${sheet}')`;
+      icon.style.backgroundPosition = `-${x}px -${y}px`;
+
+      const label = document.createElement("span");
+      label.textContent = `Casting: ${name}`;
+
+      const bar = document.createElement("div");
+      bar.className = "castBar";
+      bar.style.animationDuration = `${durationMs}ms`;
+
+      msg.appendChild(bar);
+      msg.appendChild(icon);
+      msg.appendChild(label);
+
+      spellMessages.appendChild(msg);
+      currentCast = msg;
+
+      setTimeout(() => {
+        if (msg === currentCast) {
+          msg.remove();
+          currentCast = null;
+        }
+      }, durationMs);
+    }
+
+    function showInterruption(type, name = "", iconId = 0) {
+      clearCastMessage();
+      console.log(`[⚠️] Show ${type}:`, name);
+
+      if (type === "fizzle") {
+        const container = document.createElement("div");
+        container.className = "fizzleContainer";
+
+        const { sheet, x, y } = getIconSpriteData(iconId);
+
+        const left = document.createElement("div");
+        left.className = "spellMessage fizzleHalf fizzleLeft";
+        const iconL = document.createElement("div");
+        iconL.className = "spellMessageIcon";
+        iconL.style.backgroundImage = `url('${sheet}')`;
+        iconL.style.backgroundPosition = `-${x}px -${y}px`;
+        const labelL = document.createElement("span");
+        labelL.textContent = `Fizzle: ${name}`;
+        left.appendChild(iconL);
+        left.appendChild(labelL);
+
+        const right = document.createElement("div");
+        right.className = "spellMessage fizzleHalf fizzleRight";
+        const iconR = document.createElement("div");
+        iconR.className = "spellMessageIcon";
+        iconR.style.backgroundImage = `url('${sheet}')`;
+        iconR.style.backgroundPosition = `-${x}px -${y}px`;
+        const labelR = document.createElement("span");
+        labelR.textContent = `Fizzle: ${name}`;
+        right.appendChild(iconR);
+        right.appendChild(labelR);
+
+        container.appendChild(left);
+        container.appendChild(right);
+        spellMessages.appendChild(container);
+        currentCast = container;
+
+        setTimeout(() => {
+          if (currentCast === container) {
+            container.remove();
+            currentCast = null;
+          }
+        }, 1500);
+      } else {
+        const msg = document.createElement("div");
+        msg.className = "spellMessage";
+
+        if (iconId > 0) {
+          const { sheet, x, y } = getIconSpriteData(iconId);
+          const icon = document.createElement("div");
+          icon.className = "spellMessageIcon";
+          icon.style.backgroundImage = `url('${sheet}')`;
+          icon.style.backgroundPosition = `-${x}px -${y}px`;
+          msg.appendChild(icon);
+        }
+
+        const label = document.createElement("span");
+        label.className = "interruptedText";
+        label.textContent = "INTERRUPTED!";
+        msg.appendChild(label);
+
+        spellMessages.appendChild(msg);
+        currentCast = msg;
+
+        setTimeout(() => {
+          if (msg === currentCast) {
+            msg.remove();
+            currentCast = null;
+          }
+        }, 1500);
+      }
+    }
+
+    let socket;
+    function setupWebSocket() {
+      socket = new WebSocket(`ws://localhost:6789`);
+      window.socket = socket;
+
+      socket.onopen = () => console.log("[✅] WebSocket connected");
+
+      socket.onmessage = event => {
+        const data = JSON.parse(event.data);
+        console.log("[📨] Received:", data);
+
+        if (!data || !data.type) return;
+
+        switch (data.type) {
+          case "casting":
+            showSpellMessage(data.name, data.icon_id, data.cast_time || 3000);
+            break;
+          case "fizzle":
+            showInterruption("fizzle", data.name, data.icon_id);
+            break;
+          case "interrupted":
+            showInterruption("interrupted", data.name, data.icon_id);
+            break;
+          default:
+            console.warn("[⚠️] Unknown event type:", data.type);
+        }
+      };
+
+      socket.onclose = () => {
+        console.log("[❌] WebSocket disconnected. Reconnecting...");
+        setTimeout(setupWebSocket, 3000);
+      };
+    }
+
+    setupWebSocket();
+  </script>
+</body>
+</html>

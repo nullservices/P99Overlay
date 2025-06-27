@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Buff Overlay</title>
+  <style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    overflow: hidden;
+  }
+
+  #buffsContainer {
+    position: absolute;
+    top: 50px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+  }
+
+  .buffBox {
+    width: 48px;
+    height: 64px;
+    position: relative;
+    background: rgba(0, 0, 0, 0.75);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    padding: 2px 0 4px 0;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  }
+
+  .buffIcon {
+    width: 40px;
+    height: 40px;
+    background-repeat: no-repeat;
+    background-size: auto;
+    image-rendering: pixelated;
+    border-radius: 4px;
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.8);
+  }
+
+  .buffTimerWrapper {
+    position: absolute;
+    right: -7px;
+    top: 2px;
+    width: 5px;
+    height: 40px;
+    background-color: rgba(64, 64, 64, 0.5);
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    z-index: 1;
+  }
+
+  .buffTimerBar {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, #00ff00, #66ff66);
+    box-shadow: 0 0 4px 1px rgba(0, 255, 0, 0.5);
+    transform-origin: bottom;
+    animation: buffTimer linear forwards;
+  }
+
+  @keyframes buffTimer {
+    0% { transform: scaleY(1); }
+    100% { transform: scaleY(0); }
+  }
+
+  .buffLabel {
+    font-family: Georgia, serif;
+    font-size: 10px;
+    color: #ccc;
+    text-align: center;
+    padding-top: 4px;
+    text-shadow: 1px 1px 2px black;
+    line-height: 1.1;
+  }
+</style>
+
+</head>
+<body>
+  <div id="buffsContainer"></div>
+
+  <script>
+    function getIconSpriteData(iconId) {
+      const sheet = Math.floor(iconId / 36) + 1;
+      const index = iconId % 36;
+      const row = Math.floor(index / 6);
+      const col = index % 6;
+      return {
+        sheet: `/static/spells/spells${sheet.toString().padStart(2, '0')}.png`,
+        x: col * 40,
+        y: row * 40
+      };
+    }
+
+    const activeBuffs = {};
+
+    function addBuff(name, iconId, durationMs = 30000) {
+      removeBuff(name);
+
+      const { sheet, x, y } = getIconSpriteData(iconId);
+      const container = document.getElementById("buffsContainer");
+
+      const buffBox = document.createElement("div");
+      buffBox.className = "buffBox";
+      buffBox.dataset.buffName = name;
+
+      const icon = document.createElement("div");
+      icon.className = "buffIcon";
+      icon.style.backgroundImage = `url('${sheet}')`;
+      icon.style.backgroundPosition = `-${x}px -${y}px`;
+
+      const timerWrapper = document.createElement("div");
+      timerWrapper.className = "buffTimerWrapper";
+
+      const bar = document.createElement("div");
+      bar.className = "buffTimerBar";
+      bar.style.animationDuration = `${durationMs}ms`;
+
+      timerWrapper.appendChild(bar);
+      icon.appendChild(timerWrapper);
+
+      const label = document.createElement("div");
+      label.className = "buffLabel";
+      label.textContent = name;
+
+      buffBox.appendChild(icon);
+      buffBox.appendChild(label);
+      container.appendChild(buffBox);
+
+      activeBuffs[name] = buffBox;
+
+      setTimeout(() => removeBuff(name), durationMs);
+    }
+
+    function removeBuff(name) {
+      const buff = activeBuffs[name];
+      if (buff) {
+        buff.remove();
+        delete activeBuffs[name];
+      }
+    }
+
+    function setupWebSocket() {
+      const socket = new WebSocket("ws://localhost:6789");
+
+      socket.onopen = () => console.log("[✅] WebSocket connected");
+
+      socket.onmessage = event => {
+        const data = JSON.parse(event.data);
+        if (data.type === "buff") {
+          addBuff(data.name, data.icon_id, data.duration_ms || 30000);
+        } else if (data.type === "remove_buff") {
+          removeBuff(data.name);
+        }
+      };
+
+      socket.onclose = () => {
+        console.log("[❌] WebSocket disconnected, retrying...");
+        setTimeout(setupWebSocket, 3000); // retry
+      };
+    }
+
+    setupWebSocket();
+  </script>
+</body>
+</html>

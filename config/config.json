@@ -1,0 +1,5 @@
+{
+  "log_dir": "C:/EQlite/Logs",
+  "port": 8000,
+  "ws_port": 6789
+}
