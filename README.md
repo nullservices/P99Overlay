@@ -5,6 +5,7 @@
 - Zone name
 - Total/session kills & deaths
 - Looted coins and items with classic EverQuest-style animations
+- Buff Monitor and Spell Animations
 
 Perfect for Twitch streamers or personal stats tracking.
 
