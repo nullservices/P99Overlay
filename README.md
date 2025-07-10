@@ -1,75 +1,92 @@
-# P99Overlay
+# 🎮 P99Overlay
 
-🎥 A real-time stream overlay for **Project 1999 (EverQuest)** players that displays:
-- Character info
-- Zone name
-- Total/session kills & deaths
-- Looted coins and items with classic EverQuest-style animations
-
-Perfect for Twitch streamers or personal stats tracking.
+A real-time stream overlay system for **Project 1999 (EverQuest)**. Built for Twitch streamers and immersive stat nerds.
 
 ---
 
-## 🔧 Features
+## ✨ Features
 
-- 📜 Real-time parsing of your P99 log file
-- 💰 Animated coin collection when looting platinum/gold/silver/copper
-- 🪙 Item icon popups with animated bag collection
-- 🧍 Displays character name and zone
-- 📊 Total and session stats for kills and deaths
-- 🌐 HTML overlay for OBS or browser source
-
----
-
-## 📦 Requirements
-
-- Python 3.10+  
-- Modern web browser (for the overlay)
-- OBS or any streaming tool that supports browser sources
+- 📜 Live parsing of your EverQuest log file
+- 🪙 Animated coin drops (Platinum, Gold, Silver, Copper)
+- 📦 Item looting animation with classic EverQuest-style icons
+- 📍 Character name & zone display
+- ⚔️ Total and session-based kills and deaths
+- ✨ Spell cast animations and fizzles
+- 🧪 Buff bar with duration tracking
+- 🌐 Modular HTML overlays for OBS/browser
 
 ---
 
-## 🚀 Getting Started
+## 🧰 Requirements
 
-1. **Clone the repo**
-   ```bash
-   git clone https://github.com/nullservices/P99Overlay.git
-   cd P99Overlay
-   ```
+- Python 3.10+
+- OBS Studio (or any browser source-friendly streaming app)
+- Web browser (for local overlay testing)
+- EQ log files enabled (`/log on` in-game)
 
-2. **Install dependencies**
-   ```python
-   pip install websockets
-   ```
+---
 
-4. **Configure your `config.json`**
-   Create a file named `config.json` in the root folder:
+## 🚀 Setup Instructions
 
-   ```json
-   {
-     "log_dir": "H:/P99/Logs",
-     "port": 8000,
-     "ws_port": 6789
-   }
-   ```
+### 1. Clone the Repo
 
-   Update `log_dir` to your EverQuest log file directory.
+```bash
+git clone https://github.com/nullservices/P99Overlay.git
+cd P99Overlay
+```
 
-5. **Run the overlay**
-   ```bash
-   python overlay.py
-   ```
+### 2. Install Dependencies
 
-   You should see logs like:
-   ```
-   [HTTP] Serving overlay at http://localhost:8000
-   [WS] WebSocket server running on ws://localhost:6789
-   ```
+```bash
+pip install websockets
+```
 
-6. **Add it to OBS**
+### 3. Update `config.json`
 
-   - Add a new **Browser Source**
-   - Set the URL to: `http://localhost:8000`
-   - Set the dimensions to match your stream (e.g., 1920x1080)
+In the project config folder, update the log file location in the`config.json` file:
+
+```json
+{
+  "log_dir": "H:/P99/Logs",
+  "port": 8000,
+  "ws_port": 6789
+}
+```
+
+Update `log_dir` to your actual EverQuest log file directory.
+
+### 4. Run the Overlay
+
+```bash
+python src/overlay.py
+```
+
+Example output:
+
+```
+[MONITOR] Watching H:/P99/Logs\eqlog_CharName_P1999Green.txt
+[HTTP] Serving overlays at http://localhost:8000
+[WS] WebSocket server running at ws://localhost:6789
+
+Available Overlays:
+ ▶ Loot     → http://localhost:8000/overlay_loot.html
+ ▶ Spells   → http://localhost:8000/overlay_spells.html
+ ▶ Buffs    → http://localhost:8000/overlay_buffs.html
+ ▶ Header   → http://localhost:8000/overlay_header.html
+```
+
+### 5. Add to OBS
+
+- Add a new **Browser Source** in OBS.
+- Use one or more of the following URLs depending on the overlay type:
+
+```
+http://localhost:8000/overlay_loot.html
+http://localhost:8000/overlay_spells.html
+http://localhost:8000/overlay_buffs.html
+http://localhost:8000/overlay_header.html
+```
+
+- Set the size (e.g., 1920×1080) and enable hardware acceleration for best performance.
 
 ---
