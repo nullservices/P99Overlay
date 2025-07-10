@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AA Tracker Overlay</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+    #aaBar {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%) scale(1.4);
+      z-index: 10;
+      color: #FFFFCC;
+      font-family: "Georgia", serif;
+      font-size: 16px;
+      font-weight: normal;
+      padding: 8px 14px;
+      background: rgba(0, 0, 0, 0.65);
+      border: 1px solid #888866;
+      border-radius: 6px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.6);
+      text-shadow: 1px 1px 2px #000000;
+      white-space: nowrap;
+      max-width: 90%;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="aaBar">
+    <span id="aaTotal">Total AAs: 0</span> |
+    <span id="aaSession">Session AAs: 0</span> |
+    <span id="aaph">AAs/hour: 0</span> |
+    <span id="avgPer">Avg per AA: 0m 0s</span> |
+    <span id="elapsed">Session Time: 0m</span>
+  </div>
+
+  <script>
+    const aaTotal = document.getElementById("aaTotal");
+    const aaSession = document.getElementById("aaSession");
+    const aaph = document.getElementById("aaph");
+    const avgPer = document.getElementById("avgPer");
+    const elapsed = document.getElementById("elapsed");
+
+    function formatMinutes(seconds) {
+      const mins = Math.floor(seconds / 60);
+      return `${mins}m`;
+    }
+
+    function setupWebSocket() {
+      const socket = new WebSocket("ws://localhost:6789");
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "aa") {
+          aaTotal.textContent = `Total AAs: ${data.total}`;
+          aaSession.textContent = `Session AAs: ${data.session}`;
+          aaph.textContent = `AAs/hour: ${data.aaph}`;
+          avgPer.textContent = `Avg per AA: ${data.avg_per}`;
+          elapsed.textContent = `Session Time: ${formatMinutes(data.elapsed)}`;
+        }
+      };
+
+      socket.onclose = () => {
+        console.warn("[❌] AA WebSocket closed. Reconnecting...");
+        setTimeout(setupWebSocket, 3000);
+      };
+    }
+
+    setupWebSocket();
+  </script>
+</body>
+</html>

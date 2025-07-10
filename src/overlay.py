@@ -46,6 +46,10 @@ session_kills = 0
 last_casted_spell = None
 last_cast_time = 0
 
+aa_session = 0
+aa_start_time = time.time()
+
+
 BUFF_TYPES = {1, 3, 4, 5, 7}
 
 # === UTILITIES ===
@@ -131,6 +135,15 @@ def find_latest_log_file():
     log_files = glob.glob(os.path.join(LOG_DIR, "eqlog_*.txt"))
     return max(log_files, key=os.path.getmtime) if log_files else None
 
+def initialize_aa_from_log(filepath):
+    global aa_total
+    aa_total = 0
+    with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+        for line in f:
+            if "You have gained an ability point!" in line:
+                aa_total += 1
+    print(f"[AA INIT] Total AAs from log: {aa_total}")
+
 def initialize_stats_from_log(filepath):
     global total_kills, total_deaths
     total_kills = 0
@@ -149,6 +162,7 @@ def initialize_stats_from_log(filepath):
 def monitor_log_file(filepath):
     global total_deaths, session_deaths, total_kills, session_kills
     global last_casted_spell, last_cast_time
+    global aa_total, aa_session, aa_start_time
 
     print(f"[MONITOR] Watching {filepath}")
     with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
@@ -214,19 +228,70 @@ def monitor_log_file(filepath):
                 send_stats_update()
                 last_monster_slayed = None
 
+            # AA GAINED
+            if "You have gained an ability point!" in content:
+                aa_total += 1
+                aa_session += 1
+                print("[AA] Gained an ability point")
+                elapsed_seconds = time.time() - aa_start_time
+                elapsed_hours = elapsed_seconds / 3600
+                aaph = round(aa_session / elapsed_hours, 2) if elapsed_hours > 0 else 0
+                avg_interval = elapsed_seconds / aa_session if aa_session > 0 else 0
+                avg_minutes = int(avg_interval // 60)
+                avg_seconds = int(avg_interval % 60)
+                send_to_clients({
+                    "type": "aa",
+                    "total": aa_total,
+                    "session": aa_session,
+                    "aaph": aaph,
+                    "elapsed": int(elapsed_seconds),
+                    "avg_per": f"{avg_minutes}m {avg_seconds}s"
+                })
+
             # ITEM LOOT
             item_match = re.search(r"You have looted (?:a[n]?\s)?(.+?)\.", content)
             if item_match:
                 item_name = item_match.group(1).strip("- ").strip()
-                lookup_key = re.sub(r"[^a-z0-9 ]", "", item_name.lower()).strip()
+
+                # 🧼 Remove suffixes like (Enchanted), (Legendary), etc.
+                item_name_cleaned = re.sub(r"\s*\(.*?\)", "", item_name).strip()
+
+                # 🔑 Normalize for lookup
+                lookup_key = re.sub(r"[^a-z0-9 ]", "", item_name_cleaned.lower()).strip()
+
                 icon_id = item_icon_map.get(lookup_key)
                 if icon_id:
                     icon_url = f"{ITEM_ICON_BASE_URL}/item_{icon_id}.png"
+                    # ✅ Show original name (with Enchanted) but lookup using cleaned key
                     send_to_clients({"type": "item", "item": item_name, "icon": icon_url})
                     send_to_clients({"type": "item_toast", "item": item_name, "icon": icon_url})
                     send_to_clients({"type": "bag_open"})
                 else:
-                    print(f"[WARN] No icon for {item_name}")
+                    print(f"[WARN] No icon for {item_name} (lookup key: {lookup_key})")
+
+            # ITEM XP / LEVELING
+            level_match = re.search(r"Your \[(.+?)\] absorbs energy.*\(([\d.]+)%\)", content)
+            if level_match:
+                full_item_name = level_match.group(1).strip()
+                percent = float(level_match.group(2))
+
+                # Remove (suffixes) for lookup key
+                cleaned_name = re.sub(r"\s*\(.*?\)", "", full_item_name).strip()
+                lookup_key = re.sub(r"[^a-z0-9 ]", "", cleaned_name.lower()).strip()
+
+                icon_id = item_icon_map.get(lookup_key)
+                if icon_id:
+                    icon_url = f"{ITEM_ICON_BASE_URL}/item_{icon_id}.png"
+                    print(f"[ITEM XP] {full_item_name} is {percent:.2f}% leveled")
+                    send_to_clients({
+                        "type": "item_xp",
+                        "item": full_item_name,
+                        "icon": icon_url,
+                        "percent": percent
+                    })
+                else:
+                    print(f"[WARN] No icon for leveled item {full_item_name} (lookup: {lookup_key})")
+
 
             # SPELL CASTING
             if "You begin casting" in content:
@@ -284,6 +349,7 @@ def monitor_log_file(filepath):
                             })
                             break
 
+
 # === WEBSOCKET + HTTP ===
 async def ws_handler(websocket):
     connected_clients.add(websocket)
@@ -333,6 +399,8 @@ def start_http_server():
     print(f"  ▶ Spells   → http://localhost:{PORT}/overlay_spells.html")
     print(f"  ▶ Buffs    → http://localhost:{PORT}/overlay_buffs.html")
     print(f"  ▶ Header   → http://localhost:{PORT}/overlay_header.html")
+    print(f"  ▶ AA   → http://localhost:{PORT}/overlay_aa.html")
+    print(f"  ▶ ItemXP   → http://localhost:{PORT}/overlay_itemxp.html")
     httpd.serve_forever()
 
 # === MAIN ===
@@ -348,6 +416,8 @@ if __name__ == "__main__":
     threading.Thread(target=monitor_log_file, args=(log_file,), daemon=True).start()
     threading.Thread(target=start_http_server, daemon=True).start()
     threading.Thread(target=lambda: main_loop.run_until_complete(start_websocket_server()), daemon=True).start()
+    initialize_aa_from_log(log_file)
+
 
     while True:
         time.sleep(1)
